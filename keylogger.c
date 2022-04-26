@@ -75,7 +75,7 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
     
     // check if window has changed/updated
     if(strcmp(window, new_window)){
-        strcpy(new_window, window);
+        strncpy(new_window, window, BUF_SIZE);
 
         // if changed/updated, get display current window and time
         if(!strcmp(window, new_window) && strcmp(window, "")){
