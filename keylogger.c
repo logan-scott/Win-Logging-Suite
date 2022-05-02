@@ -162,10 +162,16 @@ void ExecuteMailer(){
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE; // hide new executable window
+
+    // get mailer path
+    char mailer_path[MAX_PATH];
+    char currentdir[MAX_PATH];
+    GetCurrentDirectory(MAX_PATH, currentdir);
+    sprintf(mailer_path, "%s\\mailer.exe", currentdir);
     
     // win32 version of fork() and exec()
     CreateProcess(
-        "", //path of mailer executable
+        mailer_path,
         NULL, NULL, NULL,
         FALSE,
         CREATE_NO_WINDOW,
