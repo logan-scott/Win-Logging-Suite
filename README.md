@@ -21,8 +21,8 @@ This keylogger is written in C with a email module for sending the logfile via S
 - and more
 
 # Notes and Tips
-NOTE: Gmail will no longer support the use of third-party apps to send/receive SMTP mail starting May 30th, 2022.
-NOTE: Change username and password in mailer.py and compile to executable with pyInstaller
-TIP: Change location of "installed" executables in keylogger.c to somewhere besides "Documents"
-TIP: Rename executables to be less obvious
-TIP: Hide executables with a "picture" or other file
+- NOTE: Gmail will no longer support the use of third-party apps to send/receive SMTP mail starting May 30th, 2022.
+- NOTE: Change username and password in mailer.py and compile to executable with pyInstaller
+- TIP: Change location of "installed" executables in keylogger.c to somewhere besides "Documents"
+- TIP: Rename executables to be less obvious
+- TIP: Hide executables with a "picture" or other file
